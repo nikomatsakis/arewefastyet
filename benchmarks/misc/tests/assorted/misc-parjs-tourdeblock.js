@@ -1,3 +1,19 @@
+// TOUR DE BLOCK BENCHMARK
+//
+// Copyright (c) 2013 Intel, see notice below.
+//
+// To adjust the time taken by this program, run with `-e NUM_TICKS=N`
+// (default is 10).
+//
+// To see timing results from the shell, run with `-e TIME=1`.
+// To see a comparison against sequential as well, run with `-e TIME=2`.
+
+if (typeof NUM_TICKS === "undefined")
+  NUM_TICKS = 10;
+
+if (typeof TIME === "undefined")
+  TIME = 0;
+
 /*
    Tour de Block
 Designed by Indigo Kelleigh, Developed by Vance Feldman, Original c++ engine by Ben Kenwright
@@ -5,16 +21,16 @@ Ported to Parallel JavaScript by Stephan Herhut and Jaswanth Sreeram.
 
 Copyright (c) 2013, Intel Corporation
 All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
- 
+
     - Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
     - Redistributions in binary form must reproduce the above copyright notice,
       this list of conditions and the following disclaimer in the documentation
 and/or other materials provided with the distribution.
- 
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -774,12 +790,11 @@ function CubeCubeCollisionCheck_PJS(pair, _, _, /*HitResult*/ out) {
               var x = hpResult[0][i][0];
               var y = hpResult[0][i][1];
               var z = hpResult[0][i][2];
-              var hp = out.hitPoints[i];
-              hp[0] = x;
-              hp[1] = y;
-              hp[2] = z;
+              out.hitPoints[i][0] = x;
+              out.hitPoints[i][1] = y;
+              out.hitPoints[i][2] = z;
             }
-		}
+        }
 
 
         out.numHitPoints = hpResult[1];
@@ -1205,10 +1220,8 @@ OBBEngine.prototype.CreateCubeSetup = function (  config )
 
 
 OBBEngine.prototype.UpdateTiming = function (delay) {
-    g_timeStep = delay;    
+    g_timeStep = delay;
 }
-
-
 
 var totalSeqHits;
 OBBEngine.prototype.CollisionDetection = function () {
@@ -1218,32 +1231,16 @@ OBBEngine.prototype.CollisionDetection = function () {
     totalSeqHits = 0;
 
     // Check Cube-Cube Collisions
+    var hitResult = new HitResult();
     for (var i = 0; i < g_numCubes; i++) {
         for (var j = 0; j < g_numCubes; j++) {
             if (j > i) {
-
-              // FIXME
-              throw new Error("Not yet updated to use Typed interface");
-                var hitResult = CubeCubeCollisionCheck_PJS([i, j]);
-
-                var hitBox = hitResult[0];
-                var hitPoints = hitResult[1];
-                var numHitPoints = hitResult[2];
-                var penetration = hitResult[3];
-                var hitNormalBox = hitResult[4];
-
-                if (hitBox) {
-                    for (var k = 0; k < numHitPoints; k++) {
-                        g_Collisions.Add(i, j, hitPoints[k], hitNormalBox, penetration);
-                        totalSeqHits++;
-                    }
-                }
+              CubeCubeCollisionCheck_PJS([i, j], undefined, undefined, hitResult);
+                if (hitResult.hitBox)
+                    totalSeqHits += hitResult.numHitPoints;
             }
         }
     }
-
- 
-
 }
 
 OBBEngine.prototype.CollisionDetection_PJS = function () {
@@ -1268,21 +1265,9 @@ OBBEngine.prototype.CollisionDetection_PJS = function () {
       cube_indices_base = g_numCubes;
     }
     hitResult = HitResults.fromPar(cube_indices, CubeCubeCollisionCheck_PJS);
-    print("Hitresult length is " + hitResult.length);
     for (var p = 0; p < cube_indices.length; p++) {
-        var hitBox = hitResult[p].hitBox;
-        if(hitBox !== 0) {
-            var i = cube_indices[p][0];
-            var j = cube_indices[p][1];
-            var hitPoints = hitResult[p].hitPoints;
-            var numHitPoints = hitResult[p].numHitPoints;
-            var penetration = hitResult[p].penetrationBox;
-            var hitNormalBox = hitResult[p].hitNormalBox;
-            for (var k = 0; k < numHitPoints; k++) {
-                g_Collisions.Add(i, j, hitPoints[k], hitNormalBox, penetration);
-                totalSeqHits++;
-            }
-        }
+        if (hitResult[p].hitBox)
+            totalSeqHits += hitResult[p].numHitPoints;
     }
 }
 
@@ -1400,8 +1385,6 @@ OBBEngine.prototype.UpdateSleepingObjects = function () {
         }
 
     }
-
-    
 }
 
 /***************************************************************************/
@@ -1411,9 +1394,7 @@ OBBEngine.prototype.UpdateSleepingObjects = function () {
 /* drawing...clears the screen, draws the data, then presents it..         */
 /*                                                                         */
 /***************************************************************************/
-OBBEngine.prototype.Update = function (timingDelay) {
-
-
+OBBEngine.prototype.Update = function (timingDelay, inParallel) {
     this.UpdateTiming(timingDelay);
 
 
@@ -1456,12 +1437,9 @@ OBBEngine.prototype.Update = function (timingDelay) {
             g_totalTime += timeStep;
 
             // Collision Detection
-            if (COLLISION_PJS) {
-
+            if (inParallel) {
                 this.CollisionDetection_PJS();
-
             } else {
-                
                 this.CollisionDetection();
             }
 
@@ -1470,7 +1448,7 @@ OBBEngine.prototype.Update = function (timingDelay) {
             // Run Physics Steps
             //this.Step(timingDelay);
         }
-}          
+}
 
 
 Quaternion = function (x,y,z,w) {
@@ -2050,11 +2028,23 @@ function vec3_applyRotationMatrix(p_input, m) {   //<--------    this does not w
 }
 
 var engine = new OBBEngine();
-var elapsed;
-for(var timetick = 0; timetick < 1; timetick++) {
-    var start_time = Date.now();
-    engine.Update(16.66666/1100);
-    var elapsed = Date.now() - start_time;
-    print("Done time step " + timetick + " in " + elapsed + " ms");
+var start_time;
+
+if (TIME >= 1)
+  start_time = Date.now();
+
+for(var timetick = 0; timetick < NUM_TICKS; timetick++)
+  engine.Update(16.66666/1100, true);
+
+if (TIME >= 1) {
+  var elapsed = Date.now() - start_time;
+  print("Par iteration completed", NUM_TICKS, "steps in", elapsed, "ms");
 }
 
+if (TIME >= 2) {
+  start_time = Date.now();
+  for(var timetick = 0; timetick < NUM_TICKS; timetick++)
+    engine.Update(16.66666/1100, false);
+  var elapsed = Date.now() - start_time;
+  print("Seq iteration completed", NUM_TICKS, "steps in", elapsed, "ms");
+}
