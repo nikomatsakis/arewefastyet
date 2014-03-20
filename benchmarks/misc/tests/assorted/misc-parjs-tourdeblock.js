@@ -2,14 +2,14 @@
 //
 // Copyright (c) 2013 Intel, see notice below.
 //
-// To adjust the time taken by this program, run with `-e NUM_TICKS=N`
+// To adjust the time taken by this program, run with `-e NUM_ITERS=N`
 // (default is 10).
 //
 // To see timing results from the shell, run with `-e TIME=1`.
 // To see a comparison against sequential as well, run with `-e TIME=2`.
 
-if (typeof NUM_TICKS === "undefined")
-  NUM_TICKS = 10;
+if (typeof NUM_ITERS === "undefined")
+  NUM_ITERS = 10;
 
 if (typeof TIME === "undefined")
   TIME = 0;
@@ -1861,18 +1861,18 @@ var start_time;
 if (TIME >= 1)
   start_time = Date.now();
 
-for(var timetick = 0; timetick < NUM_TICKS; timetick++)
+for(var timetick = 0; timetick < NUM_ITERS; timetick++)
   engine.Update(16.66666/1100, true);
 
 if (TIME >= 1) {
-  var elapsed = Date.now() - start_time;
-  print("Par iteration completed", NUM_TICKS, "steps in", elapsed, "ms");
+  var elapsed_par = Date.now() - start_time;
+  print("Par iteration completed", NUM_ITERS, "steps in", elapsed_par, "ms");
 }
 
 if (TIME >= 2) {
   start_time = Date.now();
-  for(var timetick = 0; timetick < NUM_TICKS; timetick++)
+  for(var timetick = 0; timetick < NUM_ITERS; timetick++)
     engine.Update(16.66666/1100, false);
-  var elapsed = Date.now() - start_time;
-  print("Seq iteration completed", NUM_TICKS, "steps in", elapsed, "ms");
+  var elapsed_seq = Date.now() - start_time;
+  print("Seq iteration completed", NUM_ITERS, "steps in", elapsed_seq, "ms for a speedup of", elapsed_seq / elapsed_par);
 }
