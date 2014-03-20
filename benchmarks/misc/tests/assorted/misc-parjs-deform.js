@@ -1,14 +1,19 @@
-// DISPLACE BENCHMARK
+// DEFORM BENCHMARK
 //
 // Originally reported in Bug 966567.
 //
-// To adjust the time taken by this program, change numIters or nVertices.
+// To adjust the time taken by this program, change NUM_ITERS or NUM_VERTICES.
 // To see timing results from the shell, run with `-e TIME=1`.
 // To see a comparison against sequential as well, run with `-e TIME=2`.
 
-var numIters = 15;
+if (typeof NUM_ITERS === "undefined")
+  NUM_ITERS = 15;
+
+if (typeof NUM_VERTICES === "undefined")
+  NUM_VERTICES = 2880;
+
 var userData = {
-  nVertices : 2880,
+  nVertices : NUM_VERTICES,
   initPos : [],
   frequency : 1.0,
   amplitude : 0.35,
@@ -320,12 +325,12 @@ function PJS_displace(p, _e, _i, out)
 }
 
 var NUM_VERTEX_COMPONENTS = 3;
-var initPos, nVertices;
+var initPos;
 function setup() {
   for(var k = 0; k < NUM_VERTEX_COMPONENTS*userData.nVertices; k++) {
     userData.initPos[k] = k/1000;
   }
-  nVertices	= userData.nVertices;
+  var nVertices	= userData.nVertices;
   initPos		= new ThreeVectorArray(nVertices);
   for(var i=0, j=0; i<nVertices; i++, j+=NUM_VERTEX_COMPONENTS) {
 	initPos[i][0] = userData.initPos[j];
@@ -356,7 +361,7 @@ function SimulatePJS(runInParallel) {
   }
 }
 
-var start_time, elapsed_time = 0;
+var start_time, elapsed_time_par, elapsed_time_seq;
 
 setup();
 
@@ -365,21 +370,22 @@ setup();
 if (TIME >= 1)
   start_time = Date.now();
 
-for(var no = 0; no < numIters; no++) {
+for(var no = 0; no < NUM_ITERS; no++) {
   SimulatePJS(true);
 }
 
 if (TIME >= 1) {
-  elapsed_time += Date.now() - start_time;
-  print("Time taken for", numIters, " iterations ::", "[Parallel took ", elapsed_time, " ms]");
+  elapsed_time_par = Date.now() - start_time;
+  print("Par iteration completed", NUM_ITERS, "in", elapsed_time_par, "ms");
 }
 
 // Measure Sequential Execution (maybe)
 
 if (TIME >= 2) {
   start_time = Date.now();
-  for(no = 0; no < numIters; no++)
+  for(no = 0; no < NUM_ITERS; no++)
     SimulatePJS(false);
-  elapsed_time += Date.now() - start_time;
-  print("Time taken for", numIters, " iterations ::", "[Sequential took ", elapsed_time, " ms]");
+  elapsed_time_seq = Date.now() - start_time;
+  print("Seq iteration completed", NUM_ITERS, "in", elapsed_time_seq, "ms for a speedup of ",
+        elapsed_time_seq / elapsed_time_par);
 }
