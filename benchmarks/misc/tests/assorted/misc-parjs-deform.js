@@ -2,7 +2,11 @@
 //
 // Originally reported in Bug 966567.
 //
-// To adjust the time taken by this program, change NUM_ITERS or NUM_VERTICES.
+// To adjust the time taken by this program, run with `-e NUM_ITERS=N`
+// (default is 10).
+//
+// You can also adjust NUM_VERTICES.
+//
 // To see timing results from the shell, run with `-e TIME=1`.
 // To see a comparison against sequential as well, run with `-e TIME=2`.
 
